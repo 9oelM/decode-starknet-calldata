@@ -19,13 +19,11 @@ struct CallBuilder {
     data_len: u64,
 }
 
-pub fn decode_calldata(calls: &[FieldElement]) -> Result<Vec<Call>, DecodeCalldataError> {
-    decode_new_execution_calldata(calls).or_else(|_| decode_legacy_execution_calldata(calls))
+pub fn decode(calls: &[FieldElement]) -> Result<Vec<Call>, DecodeCalldataError> {
+    decode_legacy(calls).or_else(|_| decode_new(calls))
 }
 
-fn decode_legacy_execution_calldata(
-    calldata: &[FieldElement],
-) -> Result<Vec<Call>, DecodeCalldataError> {
+pub fn decode_legacy(calldata: &[FieldElement]) -> Result<Vec<Call>, DecodeCalldataError> {
     let mut calls = vec![];
 
     let calls_length = calldata
@@ -133,9 +131,7 @@ fn decode_legacy_execution_calldata(
     Ok(calls)
 }
 
-fn decode_new_execution_calldata(
-    calldata: &[FieldElement],
-) -> Result<Vec<Call>, DecodeCalldataError> {
+pub fn decode_new(calldata: &[FieldElement]) -> Result<Vec<Call>, DecodeCalldataError> {
     let mut calls = vec![];
 
     let calls_length = calldata
@@ -189,6 +185,16 @@ fn decode_new_execution_calldata(
                 offset + 3,
             ))?
             .to_vec();
+
+        println!("calldata: {:?}", calldata);
+        println!("calldata_len: {:?}", calldata_len);
+
+        if calldata.len() != calldata_len as usize {
+            return Err(DecodeCalldataError::UnexpectedLength(
+                calldata_len,
+                calldata.len() as u64,
+            ));
+        }
 
         offset += 3 + calldata_len as usize;
 
@@ -256,7 +262,7 @@ mod tests {
             felt!("0x000000000000000000000000000000000000000000000000000c35f7d2acc9ec"),
         ];
 
-        let calls = decode_new_execution_calldata(&calldata).unwrap();
+        let calls = decode(&calldata).unwrap();
         assert_eq!(calls.len(), 2);
 
         assert_eq!(
@@ -296,7 +302,7 @@ mod tests {
             felt!("0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7"),
         ];
 
-        let calls = decode_new_execution_calldata(&calldata).unwrap();
+        let calls = decode(&calldata).unwrap();
 
         assert_eq!(calls.len(), 1);
 
@@ -347,7 +353,7 @@ mod tests {
             felt!("0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7"),
         ];
 
-        let calls = decode_new_execution_calldata(&calldata).unwrap();
+        let calls = decode(&calldata).unwrap();
 
         assert_eq!(calls.len(), 3);
 
@@ -403,7 +409,7 @@ mod tests {
             felt!("0x000000000000000000000000000000000000000000000000255c9da2d84e8000"),
         ];
 
-        let calls = decode_new_execution_calldata(&calldata).unwrap();
+        let calls = decode(&calldata).unwrap();
 
         assert_eq!(calls.len(), 2);
 
@@ -449,7 +455,7 @@ mod tests {
             felt!("0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7"),
         ];
 
-        let calls = decode_legacy_execution_calldata(&calldata).unwrap();
+        let calls = decode(&calldata).unwrap();
 
         assert_eq!(calls.len(), 1);
         assert_eq!(
@@ -492,7 +498,7 @@ mod tests {
             felt!("0x000000000000000000000000000000000000000000000000057664a5e4444d40"),
         ];
 
-        let calls = decode_legacy_execution_calldata(&calldata).unwrap();
+        let calls = decode(&calldata).unwrap();
 
         assert_eq!(calls.len(), 1);
         assert_eq!(
@@ -563,7 +569,7 @@ mod tests {
             felt!("0x068f5c6a61780768455de69077e07e89787839bf8166decfbf92b645209c0fb8"),
         ];
 
-        let calls = decode_legacy_execution_calldata(&calldata).unwrap();
+        let calls = decode(&calldata).unwrap();
         assert_eq!(calls.len(), 3);
 
         assert_eq!(
@@ -619,5 +625,40 @@ mod tests {
             calls[2].calldata[0],
             felt!("0x068f5c6a61780768455de69077e07e89787839bf8166decfbf92b645209c0fb8")
         );
+    }
+
+    #[test]
+    fn test_decode_legacy_transfer() {
+        let calldata = vec![
+            felt!("0x1"),
+            felt!("0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7"),
+            felt!("0x83afd3f4caedc6eebf44246fe54e38c95e3179a5ec9ea81740eca5b482d12e"),
+            felt!("0x0"),
+            felt!("0x3"),
+            felt!("0x3"),
+            felt!("0x7521c84e175b5b36c3a59f8a737cbd4a4dd372d5570989770f4b99dd1a49dd"),
+            felt!("0x71afd498d0011"),
+            felt!("0x0"),
+        ];
+
+        let decoded = decode(&calldata).unwrap();
+
+        assert_eq!(decoded.len(), 1);
+
+        assert_eq!(
+            decoded[0].to,
+            felt!("0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7")
+        );
+        assert_eq!(
+            decoded[0].selector,
+            felt!("0x83afd3f4caedc6eebf44246fe54e38c95e3179a5ec9ea81740eca5b482d12e")
+        );
+        assert_eq!(decoded[0].calldata.len(), 3);
+        assert_eq!(
+            decoded[0].calldata[0],
+            felt!("0x7521c84e175b5b36c3a59f8a737cbd4a4dd372d5570989770f4b99dd1a49dd")
+        );
+        assert_eq!(decoded[0].calldata[1], felt!("0x71afd498d0011"));
+        assert_eq!(decoded[0].calldata[2], felt!("0x0"));
     }
 }
