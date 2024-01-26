@@ -1,2 +1,3 @@
 # decode-starknet-calldata
-Decode Starknet calldata in Rust
+
+A small utility to decode Starknet's transaction calldata in Rust.
