@@ -390,7 +390,7 @@ dependencies = [
 
 [[package]]
 name = "decode-starknet-calldata"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "bigdecimal 0.4.2",
  "starknet",
