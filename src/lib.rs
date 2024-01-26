@@ -4,8 +4,6 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum DecodeCalldataError {
-    #[error("received empty calldata")]
-    Empty,
     #[error("field '{0}' at index {1} was not found in calldata")]
     FieldNotFound(String, usize),
     #[error("failed to convert field '{0}' to u64 at index {1}")]
